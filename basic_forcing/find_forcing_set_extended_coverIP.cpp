@@ -1,7 +1,7 @@
 
 /*********************************************************************************
 This program uses the C API for Gurobi to solve the zero-forcing problem using
-the integer program that comes from the infection perspective of zero forcing
+the extended cover integer program
 
 Author: Caleb Fast
 Date: 2017
