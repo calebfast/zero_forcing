@@ -5,7 +5,10 @@ Spyder Editor
 This script will convert the DIMACS .graph files to .edg files for the zero-forcing codes.
 """
 
+import sets
+
 if __name__ == "__main__":
+    
     num_nodes = ""
     num_edges = ""
     for basefilename in ["adjnoun", "celegansneural", "chesapeake", "dolphins", "football", "jazz", "karate", "lesmis", "polbooks"]:
@@ -13,6 +16,7 @@ if __name__ == "__main__":
         outfilename = basefilename + ".edg"
         counter = 0
         with open(infilename, 'r') as infile:
+            edges = set([])
             line = infile.readline()
             line_split = line.split()
             num_nodes = line_split[0]
@@ -23,8 +27,9 @@ if __name__ == "__main__":
                 while(line):
                     line_split = line.split()
                     for i in range(len(line_split)):
-                        if int(line_split[i]) - 1 > counter:
+                        if int(line_split[i]) - 1 > counter and (counter, str(int(line_split[i]) - 1)) not in edges:
                             outfile.write(str(counter) + " " + str(int(line_split[i]) - 1) + "\n")
+                            edges.add((counter, str(int(line_split[i]) - 1)))
                     line = infile.readline()
                     counter += 1
             
