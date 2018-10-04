@@ -23,7 +23,7 @@ Usage: ./brute_force_connected_forcing <path to .edg file>
 #include <time.h>
 #include <fstream>
 #include<chrono>
-
+#include <iostream>
 #define STOPPING_TIME 7200
 #define FLOAT_TOL 0.0001
 using namespace std;
@@ -739,7 +739,7 @@ int main(int argc, char * argv[]){
   fout << "Chrono time was: " << chrono_time.count() << endl;
 	fout << endl;
 	fout.close();
-
+	cout << "returning" << endl;
   return 0;
 }
 }
@@ -761,6 +761,7 @@ int main(int argc, char * argv[]){
   fout << "Chrono time was: " << chrono_time.count() << endl;
 	fout << endl;
 	fout.close();
+        cout << "returning" << endl;
         return 0;
       }
     //x[k-1-p] ... x[k-1] are maxed out; find left-most entry p that's maxed; if p=k, stop
@@ -835,16 +836,17 @@ int main(int argc, char * argv[]){
   std::chrono::duration<double> chrono_time = chrono_time_end - chrono_time_start;
     free(x);
 
-//      fout.open("brute_connected_results.txt", ios::app);
-//	fout.precision(10);
-//	fout << endl << endl;
-//	fout << "Results for: " << basename << endl;
-//	fout << "ZFS size was: " << k << endl;
-//  fout << "Self-calculated time was: " << time_taken << endl;
-//  fout << "Chrono time was: " << chrono_time.count() << endl;
-//	fout << endl;
-//	fout.close();
-  return 0;
+      fout.open("brute_connected_results.txt", ios::app);
+	fout.precision(10);
+	fout << endl << endl;
+	fout << "Results for: " << basename << endl;
+	fout << "ZFS size was: " << k << endl;
+  fout << "Self-calculated time was: " << time_taken << endl;
+  fout << "Chrono time was: " << chrono_time.count() << endl;
+	fout << endl;
+	fout.close();
+	cout << "returning" << endl;  
+return 0;
 }
 }
     }

@@ -174,9 +174,8 @@ int __stdcall cut_callback(GRBmodel *model, void *cbdata, int where, void *usrda
     for(std::set<int>::iterator it = new_subset.get_closure_begin(); it != new_subset.get_closure_end(); ++it){
       forbidden_nodes.insert(*it);
     }
-    //mydata->our_graph.find_fort_max_complement(forts, forbidden_nodes);
-    mydata->our_graph.find_minimal_fort_LP(mydata->env, forts, forbidden_nodes, weights, (double) num_nodes);
-    //Get forbidden nodes as intersection of previous forts
+    mydata->our_graph.find_fort_max_complement(forts, forbidden_nodes);
+       //Get forbidden nodes as intersection of previous forts
 
     //std::vector<double> one_weights(num_nodes, 1.0);
     //mydata->our_graph.find_minimal_border_fort_LP(mydata->env, forts, forbidden_nodes, weights, 1.0, mydata->num_forts_variable_in); //Current best
@@ -190,9 +189,9 @@ int __stdcall cut_callback(GRBmodel *model, void *cbdata, int where, void *usrda
 
     //Add the fort constraints for start vertices
     for(std::set<std::set<int> >::iterator it = forts.begin(); it != forts.end(); ++it){
-      int v = mydata->our_graph.determine_facet_AB_LP(mydata->env, *it);
+      //int v = mydata->our_graph.determine_facet_AB_LP(mydata->env, *it);
 
-      //int v = -1;
+      int v = -1;
       if(v >= 0){
         std::vector<int> cind;
         std::vector<double> cval;
@@ -652,7 +651,7 @@ cout << "time finding forts was " << mydata.time_in_LP << endl;
   string basename = filename;
 	basename = basename.substr(basename.find_last_of('/')+1);
 
-	fout.open("FortCover_results_with_facets.txt", ios::app);
+	fout.open("ReviewerFort_results_without_facets.txt", ios::app);
 	fout.precision(10);
 	fout << endl << endl;
 	fout << "Results for: " << basename << endl;

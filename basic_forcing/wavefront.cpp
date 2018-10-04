@@ -342,19 +342,19 @@ int main(int argc, char* argv[]){
 
   }
 
-//  ofstream fout;
-//  string basename = filename;
-//	basename = basename.substr(basename.find_last_of('/')+1);
-//
-//	fout.open("wavefront_results_chrono.txt", ios::app);
-//	fout.precision(10);
-//	fout << endl << endl;
-//	fout << "Results for: " << basename << endl;
-//  fout << "ZFS size was: " << closures[best_set].get_weight() << endl;
-//  fout << "Time was: " << total_time.count() << endl;
-//  fout << "Number of closures was " << closures.size() << endl;
-//	fout << endl;
-//	fout.close();
+  ofstream fout;
+  string basename = filename;
+	basename = basename.substr(basename.find_last_of('/')+1);
+
+	fout.open("wavefront_results_chrono.txt", ios::app);
+	fout.precision(10);
+	fout << endl << endl;
+	fout << "Results for: " << basename << endl;
+  fout << "ZFS size was: " << closures[best_set].get_weight() << endl;
+  fout << "Time was: " << total_time.count() << endl;
+  fout << "Number of closures was " << closures.size() << endl;
+	fout << endl;
+	fout.close();
 
 
 

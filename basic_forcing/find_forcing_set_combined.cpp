@@ -27,6 +27,7 @@ To run: ./find_forcing_set_infectionIP <path to .edg file>
 #include<cstring>
 #include<ctime>
 #include<cmath>
+#include<climits>
 #include<stdlib.h>
 #include<algorithm>
 #include<chrono>
@@ -40,31 +41,201 @@ To run: ./find_forcing_set_infectionIP <path to .edg file>
 //#include "/opt/gurobi651/linux64/include/gurobi_c++.h"
 
 #define FLOAT_TOL 0.00001
-#define STOPPING_TIME 1
+#define STOPPING_TIME 7200
 #define PROBLEM_TYPE 1 //1 for IP, 0 for LP
 
 using namespace std;
 using namespace forcing;
 
+
+
+/*callback function for seperating cuts*/
 int __stdcall cut_callback(GRBmodel *model, void *cbdata, int where, void *usrdata){
 
-
-  if(where == GRB_CB_MIPNODE){
-
-    double running_time;
-    int error;
+  if(where != GRB_CB_POLLING){
+    struct callback_data* mydata = (struct callback_data *) usrdata;
+    //clock_t current_time = clock();
+    auto current = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> running_time = current - mydata->chrono_start_time;
+    //double running_time = (current_time - mydata->start_time)/static_cast<double>(CLOCKS_PER_SEC) ;
+    /*int error;
       error = GRBcbget(cbdata, where, GRB_CB_RUNTIME, &running_time);
 
       if(error){
-        cerr << "ERROR: " << error << " getting runtime." << endl;
+      cerr << "ERROR: " << error << " getting runtime." << endl;
+      }*/
+    if(running_time > std::chrono::seconds(STOPPING_TIME)){
+      GRBterminate(model);
+    }
+  }
+
+  if(where == GRB_CB_MIPNODE){
+    struct callback_data* mydata = (struct callback_data *) usrdata;
+    int error=0;
+
+    //cout << "found new incumbent" << endl;
+    const int num_nodes = mydata->num_nodes;
+    int fort_size = mydata->forts.size();
+    //cout << "forts.size() is " << fort_size << endl;
+
+    double* incumbent_solution = (double*) calloc(mydata->num_variables, sizeof(double));
+    error = GRBcbget(cbdata, where, GRB_CB_MIPSOL_SOL, incumbent_solution);
+
+    std::vector<double> weights(mydata->num_variables, 0);
+    for(int i=0; i<mydata->num_variables; ++i){
+      weights[i] = incumbent_solution[i];
+    }
+
+
+    //Find the violated fort constraints
+
+
+
+    auto time_start = std::chrono::high_resolution_clock::now();
+    std::set<std::set<int> > forts;
+
+    std::set<int> forbidden_nodes;
+
+
+    mydata->our_graph.find_minimal_fort_LP(mydata->env, forts, forbidden_nodes, weights, 1.0);
+    //Get forbidden nodes as intersection of previous forts
+
+    //std::vector<double> one_weights(num_nodes, 1.0);
+    //mydata->our_graph.find_minimal_border_fort_LP(mydata->env, forts, forbidden_nodes, weights, 1.0, mydata->num_forts_variable_in); //Current best
+
+    //mydata->our_graph.find_minimal_border_fort_LP(mydata->env, forts, mydata->nodes_in_cover, weights, 1.0); //Current best
+
+    //mydata->our_graph.find_max_intersection_fort_LP(mydata->env, forts, mydata->num_forts_variable_in, fort_size, weights, 1.0);
+    //mydata->our_graph.find_maximal_fort_LP(mydata->env, forts, mydata->nodes_in_cover, weights, 1.0);
+    //mydata->our_graph.find_minimal_fort_LP(mydata->env, forts, mydata->nodes_in_cover, weights, 1.0);
+    //mydata->our_graph.find_forts_LP(mydata->env, forts, mydata->nodes_in_cover, fort_number_weights, 1.0);
+
+    //Add the fort constraints for start vertices
+    for(std::set<std::set<int> >::iterator it = forts.begin(); it != forts.end(); ++it){
+      //int v = mydata->our_graph.determine_facet_AB_LP(mydata->env, *it);
+
+      int v = -1;
+      if(v >= 0){
+	std::vector<int> cind;
+	std::vector<double> cval;
+        cind.push_back(v);
+        cval.push_back(1.0);
+        for(std::set<int>::iterator jt = it->begin(); jt != it->end(); ++jt){
+          cind.push_back(*jt);
+          cval.push_back(1.0);
+        }
+        error = GRBcblazy(cbdata, cind.size(), &cind[0], &cval[0], GRB_GREATER_EQUAL, 2);
+        if(error){
+          cout << "ERROR at: add callback gomory constraint " << error << endl;
+          return 1;
+        }
       }
-      if(running_time > STOPPING_TIME){
-	      GRBterminate(model);
+      else{
+	//mydata->forts.push_back(*it);
+	//std::set<int> new_border;
+	bool is_in_border;
+	std::vector<int> cind;
+	//std::vector<int> cind2;
+	std::vector<double> cval;
+	std::set<int> a_variables;
+	//cout << "adding constraint with: ";
+	int min_degree = INT_MAX;
+	for(std::set<int>::iterator jt = it->begin(); jt != it->end(); ++jt){
+	  const int degree = mydata->our_graph.nodes[*jt].get_degree();
+	  if(degree < min_degree){
+	    min_degree = degree;
+	  }
+	}
+
+
+	for(std::set<int>::iterator jt = it->begin(); jt != it->end(); ++jt){
+	  //mydata->forts_node_in[*jt].push_back(mydata->forts.size()-1);
+	  is_in_border = false;
+	  for(int i=0; i<mydata->our_graph.nodes[*jt].get_degree(); ++i){
+	    if(it->count(mydata->our_graph.nodes[*jt].get_adj_list_member(i)) != 1){
+	      //cout << "node is on border " << endl;
+	      //new_border.insert(*jt);
+	      is_in_border = true;
+	      //mydata->num_forts_variable_in[*jt]++;
+	      //cind.push_back(get_x_v_S_number(num_nodes,*jt));
+	      //cind2.push_back(mydata->end_variable_start + *jt);
+	      //cval.push_back(-1.0);
+	      break;
+	    }
+	  }
+	  if(is_in_border){
+	    cind.push_back(*jt);
+	    cval.push_back(-1.0);
+	  }
+	  else{
+	    cind.push_back(*jt);
+	    cval.push_back(-1.0/min_degree);
+	  }
+	}
+
+
+        //cind2.push_back(mydata->end_variable_start + *jt);
+
+
+	//Find out the minimum "degree" of the nodes adjacent to each node in the fort
+	//fort_degree is the number of neighbors inside the fort
+	//min_out_degree is the number of neighbors outside the fort
+	/*
+	  const int node_degree = mydata->our_graph.nodes[*jt].get_degree();
+	  int fort_degree = 0;
+	  int min_out_degree = num_nodes;
+	  for(int i=0; i<node_degree; ++i){
+	    const int neighbor = mydata->our_graph.nodes[*jt].get_adj_list_member(i);
+	      //If not in fort, check neighbors degree of nodes in fort
+	        if(it->count(neighbor) == 0){
+		    const int neighbor_degree = mydata->our_graph.nodes[neighbor].get_degree();
+		        int degree = 0;
+			    for(int j=0; j<neighbor_degree; ++j){
+			          if(it->count(mydata->our_graph.nodes[neighbor].get_adj_list_member(j))==1){
+          degree++;
+	        }
+		    }
+		        if(degree < min_out_degree){
+			      min_out_degree = degree;
+			          }
+				    }
+				      else{
+				          fort_degree++;
+					    }
+					    }
+					    if(fort_degree == 0){
+					      fort_degree++;
+					      }
+					      if(min_out_degree < 2){
+					      std::cerr << "ERROR: Fort is not actually a fort!" << endl;
+					      }
+        for(int i=0; i<it->size(); ++i){
+         // cval.push_back((fort_degree > (min_out_degree-1)) ? -1.0/((double)min_out_degree-1) : -1.0/(double)fort_degree);
+        }
+	*/
+	//cout << endl;
+	//cout << "cind.size() is " << cind.size() << endl;
+
+	//mydata->fort_borders.push_back(new_border);
+	mydata->num_forts++;
+	error = GRBcblazy(cbdata, cind.size(), &cind[0], &cval[0], GRB_LESS_EQUAL, -1.0);
+	if(error){
+	  cout << "ERROR at: add callback fort constraint " << error << endl;
+	  return 1;
+	}
       }
+    }
+
+    //clock_t time_end = clock();
+    auto time_end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> running_time = time_end - time_start;
+    mydata->time_in_LP += running_time.count();
   }
 
   return 0;
 };
+//*/
+
 
 
 int main(int argc, char* argv[]){
@@ -338,7 +509,27 @@ int main(int argc, char* argv[]){
 
   error = GRBupdatemodel(zero_forcing);
     //callback_data* blank_data;
-  error = GRBsetcallbackfunc(zero_forcing, cut_callback, NULL);
+    //Set Callback function for adding cuts
+  callback_data mydata;
+  mydata.previous_size = 0;
+  mydata.counter = 0;
+  mydata.min_degree = min_degree;
+  //mydata.edges = edges;
+  //mydata.nodes = nodes;
+  mydata.num_forts_variable_in = std::vector<int>(num_variables, 0);
+  mydata.num_nodes = num_nodes;
+  mydata.num_forts = 0;
+  mydata.num_variables = num_variables;
+  //mydata.our_graph = our_graph;
+  mydata.env = env;
+  mydata.our_graph.nodes = our_graph.nodes;
+  const int edge_list_size = our_graph.edges.get_size();
+  for(int i=0; i<edge_list_size; ++i){
+    mydata.our_graph.edges.add_edge(our_graph.edges.get_end1(i), our_graph.edges.get_end2(i));
+  }
+  mydata.forts_node_in.resize(num_nodes);
+
+  error = GRBsetcallbackfunc(zero_forcing, cut_callback, (void *) &mydata);
   if(error){
 	  cout << "ERROR at: GRBsetcallbackfunc" << error << endl;
 	  return 1;
@@ -351,7 +542,10 @@ int main(int argc, char* argv[]){
     auto setup_end_time = std::chrono::high_resolution_clock::now();
     auto start_time = std::chrono::high_resolution_clock::now();
     //clock_t end_time = clock();
-
+    clock_t time_start = clock();
+    auto chrono_time_start = std::chrono::high_resolution_clock::now();
+    mydata.start_time = time_start;
+    mydata.chrono_start_time = chrono_time_start;
 
   error = GRBoptimize(zero_forcing);
   //clock_t time_end = clock();

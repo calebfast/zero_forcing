@@ -18,8 +18,9 @@
 //#include "<path to gurobi_c++.h>"
 //Examples
 //For my ASUS Laptop
-#include "/opt/gurobi651/linux64/include/gurobi_c++.h"
-
+//#include "/opt/gurobi651/linux64/include/gurobi_c++.h"
+//For Harvey
+#include "/opt1/opt.LOCAL//gurobi752/linux64/include/gurobi_c++.h"
 
 #define FLOAT_TOL 0.00001
 #define MIN_CLOSURE_SIZE 1
@@ -101,7 +102,10 @@ public:
     return closure_contains[i];
   };
 
-
+  void remove_from_subset(int i){
+    subset.erase(i);
+    closure.clear();
+  };
 
   void add_to_subset(int i){
     subset.insert(i);
@@ -846,6 +850,78 @@ public:
     /*cout << "fort is " << endl;
     for(std::set<int>::iterator it = outside_nodes.begin(); it != outside_nodes.end(); ++it){
       cout << *it << ",";
+    }
+    cout << endl;*/
+    return;
+
+  };
+
+
+  void find_fort_max_complement(std::set<std::set<int> >& forts, std::set<int>& forbidden_nodes){
+
+    const int num_nodes = nodes.size();
+    node_subset forced_nodes;
+    //cout << "Forced nodes are: ";
+    for(std::set<int>::iterator it = forbidden_nodes.begin(); it != forbidden_nodes.end(); ++it){
+      forced_nodes.add_to_subset(*it);
+      //cout << *it << ", ";
+    }
+    //cout << endl;
+
+    forced_nodes.update_closure(nodes);
+    bool is_forcing = true;
+    std::set<int> outside_nodes;
+    //cout << "num_nodes is " << num_nodes << endl;
+    //cout << "closure size is " << forced_nodes.get_closure_size() << endl;
+    if(forced_nodes.get_closure_size() < num_nodes){
+      is_forcing = false;
+      for(int i=0; i<num_nodes; ++i){
+        if(!forced_nodes.is_in_closure(i)){
+          outside_nodes.insert(i);
+        }
+      }
+    }
+
+    
+    std::stack<int> candidates;
+    for(std::set<int>::iterator it = outside_nodes.begin(); it != outside_nodes.end(); ++it){
+      candidates.push(*it);
+    }
+    
+    while(!candidates.empty()){
+        const int current_node = candidates.top();
+        forced_nodes.add_to_subset(current_node);
+        candidates.pop();
+        forced_nodes.update_closure(nodes);
+        if(forced_nodes.get_closure_size() == num_nodes){
+          forced_nodes.remove_from_subset(current_node);
+          forced_nodes.update_closure(nodes);
+	}
+        else{
+          while(!candidates.empty() && forced_nodes.is_in_closure(candidates.top())){
+	      candidates.pop();
+	  }
+	}
+    }
+	outside_nodes.clear();
+      for(int i=0; i<num_nodes; ++i){
+        if(!forced_nodes.is_in_closure(i)){
+          outside_nodes.insert(i);
+        }
+      }
+    if(!is_forcing){
+      forts.insert(outside_nodes);
+    }
+    /*cout << "is_forciong = " << is_forcing << endl;
+    // cout << "fort is " << endl;
+    for(std::set<int>::iterator it = outside_nodes.begin(); it != outside_nodes.end(); ++it){
+      cout << *it << ",";
+    }
+    cout << endl;
+    for(std::set<std::set<int> >::iterator st = forts.begin(); st != forts.end(); ++st){
+      for(std::set<int>::iterator it = st->begin(); it != st->end(); ++it){
+        cout << *it << ",";
+      }
     }
     cout << endl;*/
     return;
@@ -1899,14 +1975,14 @@ public:
     for(int i=0; i<num_nodes; ++i){
       types[i] = GRB_BINARY;
       //types[i] = GRB_CONTINUOUS;
-      objective_coeffs[i] = weights[i];
+      objective_coeffs[i] = 0;
       upper_bounds[i] = 1.0;
       lower_bounds[i] = 0.0;
     }
     for(int i=num_nodes; i<2*num_nodes; ++i){
       types[i] = GRB_BINARY;
       //types[i] = GRB_CONTINUOUS;
-      objective_coeffs[i] = 1.0*SPARSIFY_PENALTY;
+      objective_coeffs[i] = 1.0;
       upper_bounds[i] = 1.0;
       lower_bounds[i] = 0.0;
     }
@@ -3192,7 +3268,7 @@ public:
     for(int i=0; i<num_nodes; ++i){
       types[i] = GRB_BINARY;
       //types[i] = GRB_CONTINUOUS;
-      objective_coeffs[i] = weights[i] + SPARSIFY_PENALTY;
+      objective_coeffs[i] = 1.0; //weights[i] + SPARSIFY_PENALTY;
       upper_bounds[i] = 1.0;
       lower_bounds[i] = 0.0;
     }
@@ -3812,7 +3888,7 @@ public:
     for(int i=0; i<num_nodes; ++i){
       types[i] = GRB_BINARY;
       //types[i] = GRB_CONTINUOUS;
-      objective_coeffs[i] = weights[i] + SPARSIFY_PENALTY;
+      objective_coeffs[i] = 1.0; //weights[i] + SPARSIFY_PENALTY;
       upper_bounds[i] = 1.0;
       lower_bounds[i] = 0.0;
     }

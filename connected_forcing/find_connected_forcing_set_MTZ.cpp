@@ -31,7 +31,8 @@ Usage: ./find_connected_forcing_set_MTZ <path to .edg file>
 #include "../forcing_lib/forcing_lib.hpp"
 
 /**INCLUDE PATH TO gurobi_c++.h**/
-#include "<path to gurobi_c++.h>"
+//#include "<path to gurobi_c++.h>"
+#include "/opt1/opt.LOCAL/gurobi752/linux64/include/gurobi_c++.h"
 //Examples
 //For my Laptop
 //#include "/opt/gurobi651/linux64/include/gurobi_c++.h"
@@ -43,7 +44,7 @@ Usage: ./find_connected_forcing_set_MTZ <path to .edg file>
 #define FLOAT_TOL 0.00001
 #define MIN_CLOSURE_SIZE 1
 #define CUTOFF 0.9
-#define STOPPING_TIME 7200
+#define STOPPING_TIME 1
 
 using namespace std;
 using namespace forcing;
@@ -495,7 +496,7 @@ int __stdcall cut_callback(GRBmodel *model, void *cbdata, int where, void *usrda
     //mydata->our_graph.find_fort_closure(forts, end_weights);
     //mydata->our_graph.find_fort_greedy_style_2(forts, weights);
     //mydata->our_graph.find_fort_greedy_style_2(forts, end_weights);
-    mydata->our_graph.find_minimal_fort_LP(mydata->env, forts, forbidden_nodes, weights, 1.0);
+       mydata->our_graph.find_minimal_fort_LP(mydata->env, forts, forbidden_nodes, weights, (double) num_nodes);
     //mydata->our_graph.find_multiple_minimal_border_fort_LP(mydata->env, forts, mydata->nodes_in_cover, weights, 1.0);
 
     //Get forbidden nodes as intersection of previous forts
@@ -1301,7 +1302,7 @@ int main(int argc, char* argv[]){
     //error = GRBsetintparam(GRBgetenv(zero_forcing), "UpdateMode", 1);
     //const int num_variables = num_nodes*3+num_edges;
 
-
+    auto chrono_build_time_start = std::chrono::high_resolution_clock::now();
     /*Create the model*******************************************************/
     //Start with number of forcing chains = to heuristic branch_width value
     //Create the model with 3N*branch_width binary variables
@@ -1817,7 +1818,7 @@ int main(int argc, char* argv[]){
 	}
 
   error = GRBupdatemodel(zero_forcing);
-
+    auto chrono_build_time_end = std::chrono::high_resolution_clock::now();
   clock_t time_start = clock();
   mydata.start_time = time_start;
     auto chrono_time_start = std::chrono::high_resolution_clock::now();
@@ -1833,6 +1834,7 @@ int main(int argc, char* argv[]){
 
 
   std::chrono::duration<double> chrono_time = chrono_time_end - chrono_time_start;
+  std::chrono::duration<double> chrono_build_time = chrono_build_time_end - chrono_build_time_start;
   double total_time = (time_end- time_start)/static_cast<double>( CLOCKS_PER_SEC );
 
 
@@ -1879,23 +1881,24 @@ int main(int argc, char* argv[]){
 
 
 
-//  ofstream fout;
-//  string basename = filename;
-//	basename = basename.substr(basename.find_last_of('/')+1);
-//
-//	fout.open("new_presolve_MTZ_connected_results_chrono.txt", ios::app);
-//	fout.precision(10);
-//	fout << endl << endl;
-//	fout << "Results for: " << basename << endl;
-//	fout << "ZFS size was: " << optimum << endl;
-//	fout << "number of forts was: " << mydata.num_forts << endl;
-//	fout << "Time finding forts was: " << mydata.time_in_LP << endl;
-//	fout << "Lower bound was: " << LP_bound << endl;
-//  fout << "Gurobi reported time was: " << IPtime << endl;
-//  fout << "Self-calculated time was: " << total_time << endl;
-//      fout << "Chrono time was: " << chrono_time.count() << endl;
-//	fout << endl;
-//	fout.close();
+  ofstream fout;
+  string basename = filename;
+	basename = basename.substr(basename.find_last_of('/')+1);
+
+	fout.open("new_presolve_MTZ_setup_connected_results_chrono.txt", ios::app);
+	fout.precision(10);
+	fout << endl << endl;
+	fout << "Results for: " << basename << endl;
+	fout << "ZFS size was: " << optimum << endl;
+	fout << "number of forts was: " << mydata.num_forts << endl;
+	fout << "Time finding forts was: " << mydata.time_in_LP << endl;
+	fout << "Lower bound was: " << LP_bound << endl;
+  fout << "Gurobi reported time was: " << IPtime << endl;
+  fout << "Self-calculated time was: " << total_time << endl;
+      fout << "Chrono time was: " << chrono_time.count() << endl;
+      fout << "Model setup time was: " << chrono_build_time.count() << endl;
+	fout << endl;
+	fout.close();
 
 
   error = GRBfreemodel(zero_forcing);

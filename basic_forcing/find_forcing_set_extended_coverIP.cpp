@@ -31,7 +31,8 @@ Usage: ./find_forcing_set_extended_coverIP <path to .edg file>
 #include "../forcing_lib/forcing_lib.hpp"
 
 /**INCLUDE PATH TO gurobi_c++.h**/
-#include "<path to gurobi_c++.h>"
+#include "/opt1/opt.LOCAL//gurobi752/linux64/include/gurobi_c++.h"
+//#include "<path to gurobi_c++.h>"
 //Examples
 //For my Laptop
 //#include "/opt/gurobi651/linux64/include/gurobi_c++.h"
@@ -190,7 +191,7 @@ int __stdcall cut_callback(GRBmodel *model, void *cbdata, int where, void *usrda
     //Get forbidden nodes as intersection of previous forts */
 
     //std::vector<double> one_weights(num_nodes, 1.0);
-    mydata->our_graph.find_minimal_border_fort_LP(mydata->env, forts, forbidden_nodes, weights, 1.0, mydata->num_forts_variable_in); //Current best
+    mydata->our_graph.find_minimal_border_fort_LP(mydata->env, forts, forbidden_nodes, weights, (double) num_nodes, mydata->num_forts_variable_in); //Current best
     if(forts.size() > 0){
       //cout << "FOUND A NEW FORT" << endl;
       //mydata->num_forts++;
@@ -471,7 +472,7 @@ int main(int argc, char* argv[]){
         subset_hashes.push_back(new_hash);
       }
     }
-
+ auto chrono_build_time_start = std::chrono::high_resolution_clock::now();
     /*Create the model*******************************************************/
     //Start with number of forcing chains = to heuristic branch_width value
     //Create the model with 3N*branch_width binary variables
@@ -762,6 +763,7 @@ int main(int argc, char* argv[]){
   error = GRBupdatemodel(zero_forcing);
 
   clock_t time_start = clock();
+  auto chrono_build_time_end = std::chrono::high_resolution_clock::now();
     auto chrono_time_start = std::chrono::high_resolution_clock::now();
   mydata.start_time = time_start;
   mydata.chrono_start_time = chrono_time_start;
@@ -775,6 +777,7 @@ cout << "time finding forts was " << mydata.time_in_LP << endl;
   cout << "Running time is: " << IPtime << endl;
 
  std::chrono::duration<double> chrono_time = chrono_time_end - chrono_time_start;
+ std::chrono::duration<double> chrono_build_time = chrono_build_time_end - chrono_build_time_start;
   double total_time = (time_end- time_start)/static_cast<double>( CLOCKS_PER_SEC );
 
   double optimum;
@@ -785,23 +788,25 @@ cout << "time finding forts was " << mydata.time_in_LP << endl;
 
 
 
-//  ofstream fout;
-//  string basename = filename;
-//	basename = basename.substr(basename.find_last_of('/')+1);
-//
-//	fout.open("method3_results_chrono.txt", ios::app);
-//	fout.precision(10);
-//	fout << endl << endl;
-//	fout << "Results for: " << basename << endl;
-//  fout << "ZFS size was: " << optimum << endl;
-//  fout << "Lower bound was: " << LP_bound << endl;
-//  fout << "Number of forts was: " << mydata.num_forts << endl;
-//  fout << "Time finding forts was: " << mydata.time_in_LP << endl;
-//  fout << "Gurobi reported time was: " << IPtime << endl;
-//  fout << "Self-calculated time was: " << total_time << endl;
-//      fout << "Chrono time was: " << chrono_time.count() << endl;
-//	fout << endl;
-//	fout.close();
+  ofstream fout;
+  string basename = filename;
+	basename = basename.substr(basename.find_last_of('/')+1);
+
+	fout.open("ExtendedCover_results_chrono.txt", ios::app);
+	fout.precision(10);
+	fout << endl << endl;
+	fout << "Results for: " << basename << endl;
+  fout << "ZFS size was: " << optimum << endl;
+  fout << "Lower bound was: " << LP_bound << endl;
+  fout << "Number of forts was: " << mydata.num_forts << endl;
+  fout << "Time finding forts was: " << mydata.time_in_LP << endl;
+  fout << "Gurobi reported time was: " << IPtime << endl;
+  fout << "Self-calculated time was: " << total_time << endl;
+      fout << "Chrono time was: " << chrono_time.count() << endl;
+      fout << "Model building time was: " << chrono_build_time.count() << endl;
+
+	fout << endl;
+	fout.close();
 
 
 

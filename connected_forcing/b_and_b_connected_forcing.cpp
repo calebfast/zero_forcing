@@ -489,20 +489,20 @@ int main(int argc, char* argv[]){
     cout << *it << ", ";
   }
   cout << endl;
-//  ofstream fout;
-//  string basename = filename;
-//	basename = basename.substr(basename.find_last_of('/')+1);
-//
-//	fout.open("brute_connected_results.txt", ios::app);
-//	fout.precision(10);
-//	fout << endl << endl;
-//	fout << "Results for: " << basename << endl;
-//	fout << "ZFS size was: " << zero_forcing_set.size() << endl;
-//	fout << "Best set found had size: " << return_value << endl;
-//  fout << "Self-calculated time was: " << total_time << endl;
-//  fout << "chrono time was: " << chrono_time.count() << endl;
-//	fout << endl;
-//	fout.close();
+  ofstream fout;
+  string basename = filename;
+	basename = basename.substr(basename.find_last_of('/')+1);
+
+	fout.open("b_and_b_connected_results.txt", ios::app);
+	fout.precision(10);
+	fout << endl << endl;
+	fout << "Results for: " << basename << endl;
+	fout << "ZFS size was: " << zero_forcing_set.size() << endl;
+	fout << "Best set found had size: " << return_value << endl;
+  fout << "Self-calculated time was: " << total_time << endl;
+  fout << "chrono time was: " << chrono_time.count() << endl;
+	fout << endl;
+	fout.close();
 
 
 

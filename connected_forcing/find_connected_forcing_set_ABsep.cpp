@@ -32,7 +32,8 @@ Usage: ./find_connected_forcing_set_ABsep <path to .edg file>
 #include<chrono>
 
 /**INCLUDE PATH TO gurobi_c++.h**/
-#include "<path to gurobi_c++.h>"
+//#include "<path to gurobi_c++.h>"
+#include "/opt1/opt.LOCAL/gurobi752/linux64/include/gurobi_c++.h"
 //Examples
 //For my Laptop
 //#include "/opt/gurobi651/linux64/include/gurobi_c++.h"
@@ -377,7 +378,7 @@ bool check_connectivity(std::set<int>& chosen_nodes, std::vector<int>& positive_
       return false;
     }
     /*
-    std::vector<double> adj_matrix(num_nodes*num_nodes, 0);
+    std::vector<double> adj_matrix(num_nodes*num_nodes, 0);1
 
     for(int i=0; i<num_edges; ++i){
       const int end1 = subgraph.edges.get_end1(i);
@@ -464,7 +465,7 @@ int __stdcall cut_callback(GRBmodel *model, void *cbdata, int where, void *usrda
     //mydata->our_graph.find_fort_closure(forts, end_weights);
     //mydata->our_graph.find_fort_greedy_style_2(forts, weights);
     //mydata->our_graph.find_fort_greedy_style_2(forts, end_weights);
-    mydata->our_graph.find_minimal_fort_LP(mydata->env, forts, forbidden_nodes, weights, 1.0);
+    //mydata->our_graph.find_minimal_fort_LP(mydata->env, forts, forbidden_nodes, weights, (double) num_nodes);
     //mydata->our_graph.find_multiple_minimal_border_fort_LP(mydata->env, forts, mydata->nodes_in_cover, weights, 1.0);
 
     //Get forbidden nodes as intersection of previous forts
@@ -480,7 +481,7 @@ int __stdcall cut_callback(GRBmodel *model, void *cbdata, int where, void *usrda
     //set_intersection(temp1.begin(),temp1.end() , temp2.begin(), temp2.end(), std::inserter(forbidden_nodes, forbidden_nodes.begin()));
 
     //std::vector<double> one_weights(num_nodes, 1.0);
-    //mydata->our_graph.find_minimal_border_fort_LP(mydata->env, forts, forbidden_nodes, weights, 1.0, mydata->num_forts_variable_in); //Current best
+       mydata->our_graph.find_minimal_border_fort_LP(mydata->env, forts, forbidden_nodes, weights, (double) num_nodes, mydata->num_forts_variable_in); //Current best
     //forbidden_nodes.clear();
     /*for(int i=0; i<num_nodes; ++i){
       if(weights[i] >1-FLOAT_TOL){
@@ -614,7 +615,7 @@ int __stdcall cut_callback(GRBmodel *model, void *cbdata, int where, void *usrda
     std::chrono::duration<double> lp_time = time_end - time_start;
     mydata->time_in_LP += lp_time.count();
 
-    if(forts.size() == 0){
+    //if(forts.size() == 0){
       //clock_t connect_time_begin = clock();
       auto connect_time_start = std::chrono::high_resolution_clock::now();
       //Check for connectivity
@@ -714,7 +715,7 @@ int __stdcall cut_callback(GRBmodel *model, void *cbdata, int where, void *usrda
       auto connect_time_end = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> connect_time = connect_time_end - connect_time_start;
       mydata->time_in_connectivity += connect_time.count();
-    }
+      //}
 
 
 
@@ -1212,7 +1213,7 @@ int main(int argc, char* argv[]){
     bd_tree.nodes[index].subtree.insert(bd_tree.nodes[bd_tree.nodes[index].child2].subtree.begin(), bd_tree.nodes[bd_tree.nodes[index].child2].subtree.end());
   }
     */
-
+      auto chrono_model_build_time_start = std::chrono::high_resolution_clock::now();
 
 	//Gurobi model********************************************************************************
 
@@ -1597,6 +1598,7 @@ int main(int argc, char* argv[]){
 
   clock_t time_start = clock();
   mydata.start_time = time_start;
+      auto chrono_model_build_time_end = std::chrono::high_resolution_clock::now();
       auto chrono_time_start = std::chrono::high_resolution_clock::now();
     mydata.chrono_start_time = chrono_time_start;
   error = GRBoptimize(zero_forcing);
@@ -1607,7 +1609,7 @@ int main(int argc, char* argv[]){
   cout << "Running time is: " << IPtime << endl;
 
   clock_t time_end = clock();
-
+ std::chrono::duration<double> chrono_model_build_time = chrono_model_build_time_end - chrono_model_build_time_start;
  std::chrono::duration<double> chrono_time = chrono_time_end - chrono_time_start;
   double total_time = (time_end- time_start)/static_cast<double>( CLOCKS_PER_SEC );
 
@@ -1619,25 +1621,26 @@ int main(int argc, char* argv[]){
   cout << "time enforcing connectivity was: " << mydata.time_in_connectivity << endl;
 
 
-//  ofstream fout;
-//  string basename = filename;
-//	basename = basename.substr(basename.find_last_of('/')+1);
-//
-//	fout.open("AB_sep_connected_results_chrono_final.txt", ios::app);
-//	fout.precision(10);
-//	fout << endl << endl;
-//	fout << "Results for: " << basename << endl;
-//  fout << "ZFS size was: " << optimum << endl;
-//  fout << "Lower bound was: " << LP_bound << endl;
-//  fout << "Number of forts was: " << mydata.num_forts << endl;
-//  fout << "Time finding forts was: " << mydata.time_in_LP << endl;
-//  fout << "Number of AB constraints was: " << mydata.counter << endl;
-//  fout << "Time enforcing connectivity was: " << mydata.time_in_connectivity << endl;
-//  fout << "Gurobi reported time was: " << IPtime << endl;
-//  fout << "Self-calculated time was: " << total_time << endl;
-//  fout << "Chrono time was: " << chrono_time.count() << endl;
-//	fout << endl;
-//	fout.close();
+  ofstream fout;
+  string basename = filename;
+	basename = basename.substr(basename.find_last_of('/')+1);
+
+	fout.open("AB_sep_extended_connected_results_chrono_final.txt", ios::app);
+	fout.precision(10);
+	fout << endl << endl;
+	fout << "Results for: " << basename << endl;
+  fout << "ZFS size was: " << optimum << endl;
+  fout << "Lower bound was: " << LP_bound << endl;
+  fout << "Number of forts was: " << mydata.num_forts << endl;
+  fout << "Time finding forts was: " << mydata.time_in_LP << endl;
+  fout << "Number of AB constraints was: " << mydata.counter << endl;
+  fout << "Time enforcing connectivity was: " << mydata.time_in_connectivity << endl;
+  fout << "Gurobi reported time was: " << IPtime << endl;
+  fout << "Self-calculated time was: " << total_time << endl;
+  fout << "Chrono time was: " << chrono_time.count() << endl;
+  fout << "Model build time was: " << chrono_model_build_time.count() << endl;
+	fout << endl;
+	fout.close();
 
   /***Output forcing set information*/
 
